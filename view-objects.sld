@@ -495,6 +495,16 @@
                    '("dot"))
          #f)))
 
+    (define (file-open? path)
+      (let ((r (shell-command (string-append "lsof " path) #t)))
+        (= 0 (car r))))
+
+    (define (wait-until-file-no-longer-open path)
+      (let loop ()
+        (thread-sleep! 1)
+        (if (file-open? path)
+            (loop))))
+
     (define (create-temp-dir prefix)
       (let ((tmp-dir (or (getenv "TEMP" #f) (getenv "TMP" #f) "/tmp")))
         (create-temporary-directory (path-expand prefix tmp-dir))))
@@ -502,18 +512,18 @@
     (define (view-objects roots #!optional (options '()))
       (let ((dot-program (find-dot-program)))
         (if (not dot-program)
-            (error "could not find the 'dot' program")
+            (error "could not find the 'dot' program (is the 'graphviz' package installed?)")
             (let ((tmp-dir (create-temp-dir "view-objects")))
 
               (define (cleanup)
                 (delete-file-or-directory tmp-dir #t))
 
-              ((lambda (x y) (y)) ;with-exception-catcher
+              (with-exception-catcher
                (lambda (exc)
                  (cleanup)
                  (raise exc))
                (lambda ()
-                 (let* ((dot-file (path-expand "view-objects" tmp-dir))
+                 (let* ((dot-file (path-expand "view-objects.dot" tmp-dir))
                         (out-port (open-output-file dot-file)))
                    (object-graph->dot roots options out-port)
                    (close-port out-port)
@@ -524,7 +534,8 @@
                              #t)))
                      (if (not (= 0 (car r)))
                          (error "execution of 'dot' program terminated abnormally:" (cdr r))
-                         (view-pdf
-                          (string-append dot-file ".pdf")))
-                     (thread-sleep! 1) ;; allow PDF viewer to read file
-                     (cleanup)))))))))))
+                         (let ((pdf-file (string-append dot-file ".pdf")))
+                           (view-pdf pdf-file)
+                           ;; delete PDF file when PDF viewer is done
+                           (wait-until-file-no-longer-open pdf-file)
+                           (cleanup)))))))))))))
