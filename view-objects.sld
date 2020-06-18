@@ -1,6 +1,6 @@
 (define-library (view-objects)
 
-  (export view-objects)
+  (export view-objects view-object)
 
   (import (github.com/udem-dlteam/view-pdf)
           (gambit))
@@ -49,7 +49,7 @@
                 (else #f)))
 
         (define show-interp-procedures?
-          (cond ((assoc 'show-interpreted-procedures options) => cdr)
+          (cond ((assoc 'show-interp-procedures options) => cdr)
                 (else #f)))
 
         (define absent-obj "absent")
@@ -501,7 +501,7 @@
 
     (define (wait-until-file-no-longer-open path)
       (let loop ()
-        (thread-sleep! 1)
+        (thread-sleep! 0.25)
         (if (file-open? path)
             (loop))))
 
@@ -538,4 +538,7 @@
                            (view-pdf pdf-file)
                            ;; delete PDF file when PDF viewer is done
                            (wait-until-file-no-longer-open pdf-file)
-                           (cleanup)))))))))))))
+                           (cleanup)))))))))))
+
+    (define (view-object obj #!optional (options '()))
+      (view-objects (list (cons #f obj)) options))))
