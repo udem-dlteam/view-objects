@@ -523,7 +523,7 @@
                  (cleanup)
                  (raise exc))
                (lambda ()
-                 (let* ((dot-file (path-expand "view-objects.dot" tmp-dir))
+                 (let* ((dot-file (path-expand "view-objects" tmp-dir))
                         (out-port (open-output-file dot-file)))
                    (object-graph->dot roots options out-port)
                    (close-port out-port)
